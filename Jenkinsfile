@@ -24,6 +24,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'samvelll/ruscar-bot'
         PROD_PATH = '/home/ubuntu/ruscar-bot'
+        PROD_SSH_USER = 'ubuntu'
     }
 
     stages {
@@ -44,6 +45,38 @@ pipeline {
                     env.FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
                 }
                 echo "Docker image: ${env.FULL_IMAGE}"
+            }
+        }
+
+        stage('Validate Deployment Access') {
+            when {
+                expression { params.DEPLOY_TO_PRODUCTION }
+            }
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'ruscar-production-ssh',
+                        variable: 'SSH_KEY'
+                    ),
+                    string(
+                        credentialsId: 'ruscar-production-host',
+                        variable: 'PROD_HOST'
+                    )
+                ]) {
+                    sh '''
+                        chmod 600 "$SSH_KEY"
+                        if ! ssh-keygen -y -f "$SSH_KEY" >/dev/null 2>&1; then
+                            echo "Uploaded Jenkins SSH secret file is invalid"
+                            exit 1
+                        fi
+
+                        ssh -i "$SSH_KEY" \
+                            -o BatchMode=yes \
+                            -o StrictHostKeyChecking=accept-new \
+                            "$PROD_SSH_USER@$PROD_HOST" \
+                            "test -d '$PROD_PATH'"
+                    '''
+                }
             }
         }
 
@@ -85,10 +118,9 @@ pipeline {
             }
             steps {
                 withCredentials([
-                    sshUserPrivateKey(
+                    file(
                         credentialsId: 'ruscar-production-ssh',
-                        keyFileVariable: 'SSH_KEY',
-                        usernameVariable: 'SSH_USER'
+                        variable: 'SSH_KEY'
                     ),
                     string(
                         credentialsId: 'ruscar-production-host',
@@ -96,21 +128,11 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        normalized_key="$(mktemp)"
-                        trap 'rm -f "$normalized_key"' EXIT
-                        tr -d '\r' < "$SSH_KEY" > "$normalized_key"
-                        printf '\n' >> "$normalized_key"
-                        chmod 600 "$normalized_key"
-
-                        if ! ssh-keygen -y -f "$normalized_key" >/dev/null 2>&1; then
-                            echo "SSH private key is invalid. Update credential: ruscar-production-ssh"
-                            exit 1
-                        fi
-
-                        ssh -i "$normalized_key" \
+                        chmod 600 "$SSH_KEY"
+                        ssh -i "$SSH_KEY" \
                             -o BatchMode=yes \
                             -o StrictHostKeyChecking=accept-new \
-                            "$SSH_USER@$PROD_HOST" \
+                            "$PROD_SSH_USER@$PROD_HOST" \
                             bash -s -- "$PROD_PATH" "$FULL_IMAGE" <<'REMOTE'
                         set -eu
                         deploy_path="$1"

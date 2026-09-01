@@ -84,8 +84,8 @@ Jenkins Credentials необходимо создать:
 
 * `dockerhub-credentials` — Username with password, где password является
   Docker Hub access token с правом Read/Write;
-* `ruscar-production-ssh` — SSH Username with private key для пользователя
-  production-сервера;
+* `ruscar-production-ssh` — Secret file с отдельным приватным SSH-ключом
+  Jenkins (`ruscar_jenkins_ed25519`);
 * `ruscar-production-host` — Secret text с IP или DNS production-сервера.
 
 Telegram- и Groq-ключи Jenkins не получает: они остаются в серверном `.env`.
