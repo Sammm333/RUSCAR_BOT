@@ -91,7 +91,18 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        ssh -i "$SSH_KEY" \
+                        normalized_key="$(mktemp)"
+                        trap 'rm -f "$normalized_key"' EXIT
+                        tr -d '\r' < "$SSH_KEY" > "$normalized_key"
+                        printf '\n' >> "$normalized_key"
+                        chmod 600 "$normalized_key"
+
+                        if ! ssh-keygen -y -f "$normalized_key" >/dev/null 2>&1; then
+                            echo "SSH private key is invalid. Update credential: ruscar-production-ssh"
+                            exit 1
+                        fi
+
+                        ssh -i "$normalized_key" \
                             -o BatchMode=yes \
                             -o StrictHostKeyChecking=accept-new \
                             "$SSH_USER@$PROD_HOST" \
