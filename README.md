@@ -105,5 +105,11 @@ docker exec ruscar-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 учётную запись администратора. Конфигурация использует отдельный Docker daemon
 с TLS; порт Jenkins доступен только с локального компьютера.
 
-Первый build запускайте с выключенным параметром `DEPLOY_TO_PRODUCTION`. После
-настройки SSH credentials запустите `Build with Parameters` и включите его.
+После настройки credentials параметр `DEPLOY_TO_PRODUCTION` по умолчанию включён.
+Jenkins проверяет ветку `main` примерно каждые пять минут и запускает pipeline,
+если обнаружен новый commit. Локальный Jenkins и Docker Desktop должны быть
+запущены.
+
+При неудачном старте нового контейнера pipeline возвращает сервер на Docker-образ,
+который был указан в `.env` перед deployment. Первый запуск после добавления или
+изменения trigger выполните вручную, чтобы Jenkins загрузил новую конфигурацию.

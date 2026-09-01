@@ -3,6 +3,7 @@ pipeline {
 
     options {
         timestamps()
+        skipDefaultCheckout(true)
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '20'))
         timeout(time: 20, unit: 'MINUTES')
@@ -11,9 +12,13 @@ pipeline {
     parameters {
         booleanParam(
             name: 'DEPLOY_TO_PRODUCTION',
-            defaultValue: false,
+            defaultValue: true,
             description: 'Обновить production-сервер после успешной сборки'
         )
+    }
+
+    triggers {
+        pollSCM('H/5 * * * *')
     }
 
     environment {
@@ -112,18 +117,43 @@ pipeline {
                         image="$2"
 
                         cd "$deploy_path"
+                        previous_image="$(sed -n 's/^RUSCAR_IMAGE=//p' .env | head -n 1)"
+                        image_updated=false
+
+                        rollback_on_failure() {
+                            result=$?
+                            trap - EXIT
+
+                            if [ "$result" -ne 0 ] && [ "$image_updated" = "true" ] && [ -n "$previous_image" ]; then
+                                echo "Deployment failed. Rolling back to $previous_image"
+                                set +e
+                                sed -i "s|^RUSCAR_IMAGE=.*|RUSCAR_IMAGE=$previous_image|" .env
+                                sudo docker compose -f compose.server.yaml pull
+                                sudo docker compose -f compose.server.yaml up -d --force-recreate
+                                sleep 10
+                                sudo docker compose -f compose.server.yaml ps
+                            fi
+
+                            exit "$result"
+                        }
+
+                        trap rollback_on_failure EXIT
                         sed -i "s|^RUSCAR_IMAGE=.*|RUSCAR_IMAGE=$image|" .env
+                        image_updated=true
                         sudo docker compose -f compose.server.yaml pull
                         sudo docker compose -f compose.server.yaml up -d --force-recreate
                         sleep 10
 
-                        if [ "$(sudo docker inspect -f '{{.State.Status}}' ruscar-bot)" != "running" ]; then
+                        container_status="$(sudo docker inspect -f '{{.State.Status}}' ruscar-bot)"
+                        restart_count="$(sudo docker inspect -f '{{.RestartCount}}' ruscar-bot)"
+                        if [ "$container_status" != "running" ] || [ "$restart_count" -ne 0 ]; then
                             sudo docker logs --tail=100 ruscar-bot
                             exit 1
                         fi
 
                         sudo docker compose -f compose.server.yaml ps
                         sudo docker logs --tail=30 ruscar-bot
+                        trap - EXIT
                         REMOTE
                     '''.stripIndent()
                 }
