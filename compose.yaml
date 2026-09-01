@@ -1,0 +1,13 @@
+services:
+  ruscar-bot:
+    build: .
+    container_name: ruscar-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      KNOWLEDGE_FILE: /app/RUSCAR_PRO.txt
+      RUSCAR_SETTINGS_FILE: /app/data/ruscar_settings.json
+    volumes:
+      - ./RUSCAR_PRO.txt:/app/RUSCAR_PRO.txt:ro
+      - ./data:/app/data

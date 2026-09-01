@@ -1,0 +1,12 @@
+.env
+*.pem
+*.key
+data/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.idea/
+.vscode/
+bot_before_ruscar_pro.txt
+bot_memory_backup.py

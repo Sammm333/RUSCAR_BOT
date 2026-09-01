@@ -1,0 +1,13 @@
+services:
+  ruscar-bot:
+    image: ${RUSCAR_IMAGE:?Set RUSCAR_IMAGE in .env}
+    pull_policy: always
+    container_name: ruscar-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      KNOWLEDGE_FILE: /app/RUSCAR_PRO.txt
+      RUSCAR_SETTINGS_FILE: /app/data/ruscar_settings.json
+    volumes:
+      - ./data:/app/data
