@@ -73,3 +73,21 @@ docker compose -f compose.server.yaml logs --tail=100 ruscar-bot
 
 Для входа на сервере используйте отдельный Docker Hub access token только с
 правом Read. Одновременно не запускайте локальную и серверную копии polling-бота.
+
+## Jenkins CI/CD
+
+Pipeline описан в `Jenkinsfile` и выполняет checkout, проверку Python, сборку и
+push Docker-образа, затем обновляет production-сервер по SSH.
+
+На Jenkins-агенте должны быть установлены Git, Docker CLI и SSH client. В
+Jenkins Credentials необходимо создать:
+
+* `dockerhub-credentials` — Username with password, где password является
+  Docker Hub access token с правом Read/Write;
+* `ruscar-production-ssh` — SSH Username with private key для пользователя
+  production-сервера;
+* `ruscar-production-host` — Secret text с IP или DNS production-сервера.
+
+Telegram- и Groq-ключи Jenkins не получает: они остаются в серверном `.env`.
+Jenkins job следует настроить как Pipeline from SCM с веткой `*/main` и Script
+Path `Jenkinsfile`.
