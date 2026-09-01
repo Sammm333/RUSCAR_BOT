@@ -176,8 +176,8 @@ pipeline {
                         sudo docker compose -f compose.server.yaml ps
                         sudo docker logs --tail=30 ruscar-bot
                         trap - EXIT
-                        REMOTE
-                    '''.stripIndent()
+REMOTE
+                    '''
                 }
             }
         }
