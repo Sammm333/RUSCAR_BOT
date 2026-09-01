@@ -8,6 +8,14 @@ pipeline {
         timeout(time: 20, unit: 'MINUTES')
     }
 
+    parameters {
+        booleanParam(
+            name: 'DEPLOY_TO_PRODUCTION',
+            defaultValue: false,
+            description: 'Обновить production-сервер после успешной сборки'
+        )
+    }
+
     environment {
         DOCKER_IMAGE = 'samvelll/ruscar-bot'
         PROD_PATH = '/home/ubuntu/ruscar-bot'
@@ -67,6 +75,9 @@ pipeline {
         }
 
         stage('Deploy') {
+            when {
+                expression { params.DEPLOY_TO_PRODUCTION }
+            }
             steps {
                 withCredentials([
                     sshUserPrivateKey(

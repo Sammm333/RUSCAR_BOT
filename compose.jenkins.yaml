@@ -1,0 +1,42 @@
+services:
+  jenkins-docker:
+    image: docker:dind
+    container_name: ruscar-jenkins-docker
+    privileged: true
+    restart: unless-stopped
+    command: --storage-driver overlay2
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+      - jenkins-docker-certs:/certs/client
+      - jenkins-data:/var/jenkins_home
+    networks:
+      jenkins:
+        aliases:
+          - docker
+
+  jenkins:
+    build:
+      context: ./jenkins
+    container_name: ruscar-jenkins
+    restart: unless-stopped
+    depends_on:
+      - jenkins-docker
+    environment:
+      DOCKER_HOST: tcp://docker:2376
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: "1"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+    networks:
+      - jenkins
+
+networks:
+  jenkins:
+
+volumes:
+  jenkins-data:
+  jenkins-docker-certs:

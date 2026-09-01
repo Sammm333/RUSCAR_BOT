@@ -91,3 +91,19 @@ Jenkins Credentials необходимо создать:
 Telegram- и Groq-ключи Jenkins не получает: они остаются в серверном `.env`.
 Jenkins job следует настроить как Pipeline from SCM с веткой `*/main` и Script
 Path `Jenkinsfile`.
+
+### Локальный Jenkins через Docker Desktop
+
+Docker Desktop должен работать в режиме Linux containers. Запуск Jenkins:
+
+```powershell
+docker compose -f compose.jenkins.yaml up -d --build
+docker exec ruscar-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+Откройте `http://localhost:8080`, вставьте первоначальный пароль и создайте
+учётную запись администратора. Конфигурация использует отдельный Docker daemon
+с TLS; порт Jenkins доступен только с локального компьютера.
+
+Первый build запускайте с выключенным параметром `DEPLOY_TO_PRODUCTION`. После
+настройки SSH credentials запустите `Build with Parameters` и включите его.
